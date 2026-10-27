@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}{% if post %}编辑讨论{% else %}发起讨论{% endif %} · 同窗{% endblock %}
+{% block layout_class %}layout-compose{% endblock %}
+{% block content %}<a class="back-link" href="{% if post %}{{ post.get_absolute_url }}{% else %}{% url 'forum:home' %}{% endif %}">{% include 'includes/icon.html' with name='chevron-left' %}返回</a><div class="page-heading"><span class="eyebrow">一个想法，也是一扇窗</span><h1>{% if post %}编辑你的讨论{% else %}今天，想聊些什么？{% endif %}</h1><p>提一个真诚的问题，分享一段具体的经历。</p></div>
+<form method="post" class="compose-form" data-submit-label="正在发布…">{% csrf_token %}{{ form.non_field_errors }}<div class="paper-panel"><div class="form-row">{% include 'includes/form_field.html' with field=form.kind %}{% include 'includes/form_field.html' with field=form.topic %}</div>{% include 'includes/form_field.html' with field=form.title %}<div class="editor-shell"><div class="editor-toolbar"><div><button type="button" data-format="**" aria-label="加粗"><b>B</b></button><button type="button" data-format="_" aria-label="斜体"><i>I</i></button><button type="button" data-format="`" aria-label="行内代码">&lt;/&gt;</button><button type="button" data-prefix="&gt; " aria-label="引用">“</button></div><div><button type="button" data-editor-tab="write" class="active">编辑</button><button type="button" data-editor-tab="preview" hx-post="{% url 'forum:preview' %}" hx-include="[name='body']" hx-target="#editor-preview">预览</button></div></div><div id="editor-write">{{ form.body }}</div><div id="editor-preview" class="editor-preview" hidden></div></div>{{ form.body.errors }}<div class="editor-footnote"><span>支持 Markdown · 清楚的背景，更容易得到有用的回应</span><span id="editor-count">0 字</span></div></div>
+<section class="paper-panel permissions-panel">
+  <div class="panel-heading"><span class="topic-icon color-green">{% include 'includes/icon.html' with name='settings' %}</span><div><h2>谁能看见，谁能参与</h2><p>选择一种方式，发布后也可以调整。</p></div></div>
+  <div class="access-modes" data-access-options>
+    {% for radio in form.access_mode %}
+    <label class="mode-option">{{ radio.tag }}<span><strong>{{ radio.choice_label }}</strong><small>{% if radio.data.value == 'all' %}游客与未绑定学历的用户也可读{% elif radio.data.value == 'campus' %}与你任意一所学校相同，才可读和回复{% else %}按学校等级分别设置阅读和回复范围{% endif %}</small></span></label>
+    {% endfor %}
+  </div>
+  {{ form.access_mode.errors }}
+  <p class="field-help">你的本校：{{ user.schools_label }}。回复者须登录并已绑定学历。</p>
+  {% if not own_ranks %}<p class="field-help">你的学校等级尚未设置，可先使用“所有人”或“仅本校”；等级设置后即可使用区间。</p>{% endif %}
+  <div data-post-ranges {% if form.access_mode.value != 'range' %}hidden{% endif %}>
+    {% include 'includes/tier_range.html' with scope='read' label='阅读等级区间' min_field=form.read_min_tier max_field=form.read_max_tier %}
+    {% include 'includes/tier_range.html' with scope='reply' label='回复等级区间' min_field=form.reply_min_tier max_field=form.reply_max_tier %}
+    <p class="field-help">两个区间都要包含你任意一所学校的等级，回复区间必须在阅读区间内。读者任意一份已绑定学历符合即可。</p>
+  </div>
+</section>
+<div class="compose-submit"><span>好的讨论，从愿意分享开始。</span><button class="button button-primary button-large">{% if post %}保存修改{% else %}发布讨论{% endif %}{% include 'includes/icon.html' with name='arrow-right' %}</button></div></form>{{ tiers|json_script:'school-tiers' }}{{ own_ranks|json_script:'own-ranks' }}{% endblock %}
+{% block right_sidebar %}<section class="sidebar-card writing-tips"><span class="mini-label">让交流更有意思</span><h3>把问题聊清楚，<br>比把标题写大更重要。</h3><ol><li><strong>给一点背景</strong><p>你遇到了什么？已经尝试了什么？</p></li><li><strong>留一点空间</strong><p>真实的经验，往往比标准答案更有启发。</p></li><li><strong>选择合适的范围</strong><p>所有人、仅本校，或一段包含本校等级的区间。</p></li></ol></section>{% endblock %}

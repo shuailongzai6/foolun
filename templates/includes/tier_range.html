@@ -1,0 +1,12 @@
+<section class="tier-range" data-tier-range data-scope="{{ scope }}" data-min-field="{{ min_field.id_for_label }}" data-max-field="{{ max_field.id_for_label }}">
+  <div class="tier-range-heading"><strong>{{ label }}</strong><output data-range-output aria-live="polite"></output></div>
+  {{ min_field }}{{ max_field }}
+  <div class="tier-range-track">
+    <div class="tier-range-rail"><span data-range-selection></span></div>
+    <input type="range" min="0" max="{{ tiers|length|add:'-1' }}" value="0" data-range-low aria-label="{{ label }}最低等级">
+    <input type="range" min="0" max="{{ tiers|length|add:'-1' }}" value="{{ tiers|length|add:'-1' }}" data-range-high aria-label="{{ label }}最高等级">
+  </div>
+  <div class="tier-range-ticks">{% for tier in tiers %}<span data-tier-rank="{{ tier.rank }}">{{ tier.name }}</span>{% endfor %}</div>
+  <p class="range-hint" data-range-hint></p>
+  {{ min_field.errors }}{{ max_field.errors }}
+</section>

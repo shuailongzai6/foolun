@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block title %}搜索 {{ q }} · 同窗{% endblock %}
+{% block content %}<div class="page-heading"><span class="eyebrow">沿着好奇心，找一个答案</span><h1>搜索讨论</h1>{% if q %}<p>“{{ q }}” 找到 {{ page_obj.paginator.count }} 个可读讨论</p>{% else %}<p>在顶部搜索框输入你感兴趣的关键词。</p>{% endif %}</div><div class="post-feed">{% for post in page_obj %}{% include 'forum/partials/post_card.html' %}{% empty %}{% include 'includes/empty.html' with empty_icon='search' empty_title='还没有找到相关讨论' empty_description='试试换一个关键词，或把这个问题带到同窗。' %}{% endfor %}</div>{% include 'includes/pagination.html' %}{% endblock %}

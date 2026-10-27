@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tongchuang"
+version = "0.1.0"
+description = "通过学信网认证、按学校设置权限的校园论坛"
+requires-python = ">=3.11"
+dependencies = [
+    "Django>=5.2,<5.3",
+    "django-htmx>=1.23",
+    "gunicorn>=23",
+    "Markdown>=3.7",
+    "nh3>=0.2.20",
+    "python-dotenv>=1.0",
+    "whitenoise>=6.9",
+    "beautifulsoup4>=4.12",
+    "httpx>=0.27",
+    "pypdf>=5",
+]
+
+[project.scripts]
+chsi-verify = "verify_report:main"
+
+[tool.setuptools]
+py-modules = ["verify_report"]
+
+[tool.setuptools.packages.find]
+include = ["campus*", "accounts*", "forum*"]
+
+[tool.setuptools.package-data]
+accounts = ["data/*.json", "data/*.md"]

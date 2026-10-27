@@ -1,0 +1,59 @@
+{% load static django_htmx %}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="同窗，让校园里的好问题遇见同路人。通过学校认证，与在校生和校友一起交流。">
+  <meta name="htmx-config" content='{"historyCacheSize":0,"selfRequestsOnly":true}'>
+  <title>{% block title %}同窗 · 校园里的公共客厅{% endblock %}</title>
+  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'app.css' %}">
+  {% htmx_script %}
+  <script src="{% static 'app.js' %}" defer></script>
+</head>
+<body class="{% block body_class %}{% endblock %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  {% include 'includes/icons.html' %}
+  <a class="skip-link" href="#main">跳到内容</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{% url 'forum:home' %}" aria-label="同窗首页"><span class="brand-mark"><i></i><i></i></span><span class="brand-name">同窗<span>校园里的公共客厅</span></span></a>
+      <form class="header-search" action="{% url 'forum:search' %}" method="get" role="search">
+        {% include 'includes/icon.html' with name='search' %}<input type="search" name="q" value="{{ q }}" placeholder="搜索你关心的问题、话题" aria-label="搜索讨论"><kbd>⌘ K</kbd>
+      </form>
+      <div class="header-actions">
+        {% if user.is_authenticated %}
+          <a class="button button-primary header-write" href="{% url 'forum:compose' %}">{% include 'includes/icon.html' with name='plus' %}发起讨论</a>
+          <a class="icon-button notification-button" href="{% url 'forum:notifications' %}" aria-label="通知{% if unread_notifications %}，{{ unread_notifications }}条未读{% endif %}">{% include 'includes/icon.html' with name='bell' %}{% if unread_notifications %}<span class="notification-dot"></span>{% endif %}</a>
+          <details class="user-menu"><summary aria-label="账户菜单"><span class="avatar avatar-{{ user.avatar_color }}">{{ user.initial }}</span>{% include 'includes/icon.html' with name='chevron-down' %}</summary><div class="menu-panel"><strong>{{ user.name }}</strong><a href="{% url 'accounts:profile' user.username %}">我的主页</a><a href="{% url 'accounts:settings' %}">设置与首页偏好</a>{% if user.is_staff %}<a href="{% url 'admin:index' %}">管理后台</a>{% endif %}<form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">退出登录</button></form></div></details>
+        {% else %}
+          <a class="header-login" href="{% url 'accounts:login' %}">登录</a><a class="button button-primary" href="{% url 'accounts:register' %}">加入同窗{% include 'includes/icon.html' with name='arrow-right' %}</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+  <div class="site-layout {% block layout_class %}{% endblock %}">
+    <aside class="left-sidebar" aria-label="主导航">
+      <nav class="main-nav">
+        <a href="{% url 'forum:home' %}" class="{% if request.resolver_match.url_name == 'home' and tab != 'following' and tab != 'campus' %}active{% endif %}">{% include 'includes/icon.html' with name='home' %}发现<span class="nav-dot"></span></a>
+        <a href="{% url 'forum:home' %}?tab=following" class="{% if tab == 'following' %}active{% endif %}">{% include 'includes/icon.html' with name='compass' %}我的关注</a>
+        <a href="{% url 'forum:home' %}?tab=campus" class="{% if tab == 'campus' %}active{% endif %}">{% include 'includes/icon.html' with name='school' %}我的校园</a>
+        <a href="{% url 'forum:topics' %}" class="{% if request.resolver_match.url_name == 'topics' or request.resolver_match.url_name == 'topic' %}active{% endif %}">{% include 'includes/icon.html' with name='grid' %}话题广场</a>
+        <a href="{% url 'forum:saved' %}" class="{% if request.resolver_match.url_name == 'saved' %}active{% endif %}">{% include 'includes/icon.html' with name='bookmark' %}我的收藏</a>
+      </nav>
+      <div class="sidebar-separator"></div>
+      <div class="section-caption">从一个兴趣开始<a href="{% url 'forum:topics' %}" aria-label="所有话题">{% include 'includes/icon.html' with name='arrow-up-right' %}</a></div>
+      <nav class="topic-nav">{% for item in nav_topics %}<a href="{{ item.get_absolute_url }}"><span class="topic-dot color-{{ item.color }}"></span>{{ item.name }}</a>{% endfor %}</nav>
+      <div class="sidebar-note"><span class="little-flower">✳</span><p>每个校园，都有<br>值得被听见的声音。</p><a href="{% url 'forum:about' %}">认识同窗{% include 'includes/icon.html' with name='arrow-right' %}</a></div>
+      <div class="sidebar-footer"><a href="{% url 'forum:about' %}#guidelines">社区约定</a><span>·</span><a href="{% url 'forum:about' %}#privacy">隐私说明</a><small>© {% now 'Y' %} 同窗</small></div>
+    </aside>
+    <main id="main" class="main-content">
+      {% if messages %}<div class="messages" aria-live="polite">{% for message in messages %}<div class="message message-{{ message.tags }}">{% include 'includes/icon.html' with name='check-circle' %}<span>{{ message }}</span><button type="button" data-dismiss aria-label="关闭消息">×</button></div>{% endfor %}</div>{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+    <aside class="right-sidebar">{% block right_sidebar %}{% include 'includes/right_sidebar.html' %}{% endblock %}</aside>
+  </div>
+  <nav class="mobile-nav" aria-label="手机导航"><a href="{% url 'forum:home' %}">{% include 'includes/icon.html' with name='home' %}<span>发现</span></a><a href="{% url 'forum:topics' %}">{% include 'includes/icon.html' with name='grid' %}<span>话题</span></a><a class="mobile-compose" href="{% url 'forum:compose' %}" aria-label="发起讨论">{% include 'includes/icon.html' with name='plus' %}</a><a href="{% url 'forum:notifications' %}">{% include 'includes/icon.html' with name='bell' %}<span>通知</span></a><a href="{% if user.is_authenticated %}{% url 'accounts:settings' %}{% else %}{% url 'accounts:login' %}{% endif %}">{% include 'includes/icon.html' with name='user' %}<span>我的</span></a></nav>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

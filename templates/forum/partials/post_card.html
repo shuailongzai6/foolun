@@ -1,0 +1,8 @@
+{% load humanize %}
+<article class="post-card">
+  <div class="post-meta"><a class="author-link" href="{% url 'accounts:profile' post.author.username %}"><span class="avatar avatar-small avatar-{{ post.author.avatar_color }}">{{ post.author.initial }}</span><strong>{{ post.author.name }}</strong></a>{% if post.author.is_verified %}<span class="school-badge" title="{{ post.author.schools_label }}">{% include 'includes/icon.html' with name='school' %}{{ post.author.schools_label }}</span>{% endif %}{% if post.author.is_demo %}<span class="demo-label">示例</span>{% endif %}<time datetime="{{ post.created_at|date:'c' }}">{{ post.created_at|naturaltime }}</time></div>
+  <div class="post-title-row">{% if post.kind == 'question' %}<span class="question-mark">?</span>{% endif %}<h2><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h2></div>
+  <p class="post-excerpt"><a href="{{ post.get_absolute_url }}">{{ post.excerpt|truncatechars:150 }}</a></p>
+  <div class="post-tags"><a class="topic-tag color-{{ post.topic.color }}" href="{{ post.topic.get_absolute_url }}"># {{ post.topic.name }}</a>{% if post.access_mode != 'all' %}<span class="access-tag">{% include 'includes/icon.html' with name='lock' %}{{ post.access_label }}</span>{% endif %}{% if post.accepted_comment_id %}<span class="solved-tag">{% include 'includes/icon.html' with name='check-circle' %}已有采纳</span>{% endif %}</div>
+  {% include 'forum/partials/post_actions.html' %}
+</article>

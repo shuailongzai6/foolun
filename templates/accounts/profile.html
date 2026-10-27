@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}{{ person.name }} · 同窗{% endblock %}
+{% block content %}
+<section class="profile-banner"><div class="profile-cover"><span>✳</span></div><div class="profile-details"><span class="avatar avatar-xl avatar-{{ person.avatar_color }}">{{ person.initial }}</span>{% if person.pk == user.pk %}<a class="button button-secondary" href="{% url 'accounts:settings' %}">编辑资料</a>{% endif %}<h1>{{ person.name }}</h1><p class="profile-school">{% include 'includes/icon.html' with name='school' %}{{ person.schools_label|default:'尚未绑定学历' }}</p><p class="profile-bio">{{ person.bio|default:'保持好奇，分享生活里的发现。' }}</p><span class="profile-joined">{{ person.date_joined|date:'Y 年 n 月' }} 加入同窗</span></div></section>
+<div class="list-heading"><h2>{% if person.pk == user.pk %}我的讨论{% else %}TA 的讨论{% endif %}</h2><span>按当前阅读权限展示</span></div><div class="post-feed">{% for post in posts %}{% include 'forum/partials/post_card.html' %}{% empty %}{% include 'includes/empty.html' with empty_title='还没有可以浏览的讨论' %}{% endfor %}</div>
+{% endblock %}

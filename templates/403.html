@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block title %}暂时无法参与 · 同窗{% endblock %}{% block content %}<div class="error-page"><span class="empty-icon">{% include 'includes/icon.html' with name='lock' %}</span><h1>这里暂未开放参与。</h1><p>请确认你已登录，并拥有作者设置的阅读与回复权限。</p><a class="button button-primary" href="{% url 'forum:home' %}">回到发现</a></div>{% endblock %}
