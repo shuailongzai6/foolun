@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from django_htmx.http import HttpResponseClientRedirect
+from django_htmx.http import HttpResponseClientRedirect, trigger_client_event
 
 from accounts.models import Education
 
@@ -49,30 +49,72 @@ def return_to(request, fallback):
     return redirect(fallback)
 
 
+def page(request, items, size=12):
+    return Paginator(items, size).get_page(request.GET.get("page"))
+
+
+def comment_threads(post, user, sort):
+    """一级回复按所选方式排序；楼中楼按时间平铺在所属一级回复下。"""
+    comments = list(post.comments.select_related("author", "parent__author").prefetch_related(
+        Prefetch("author__educations", queryset=Education.objects.active().select_related("school__tier"), to_attr="_active_educations")
+    ).annotate(like_count=Count("votes")))
+    liked = set(CommentVote.objects.filter(user=user, comment__post=post).values_list("comment_id", flat=True)) if user.is_authenticated else set()
+    answered = {comment.parent_id for comment in comments}
+    roots, root_of = [], {}
+    for comment in comments:
+        comment.viewer_liked = comment.pk in liked
+        comment.has_replies = comment.pk in answered
+        comment.thread = []
+        root = root_of.get(comment.parent_id)
+        root_of[comment.pk] = root or comment
+        (root.thread if root else roots).append(comment)
+    if sort == "best":
+        roots.sort(key=lambda comment: (comment.pk != post.accepted_comment_id, -comment.like_count, comment.created_at))
+    return roots
+
+
+def discussion(request, post, form=None, **extra):
+    sort = "new" if request.GET.get("sort", request.POST.get("sort")) == "new" else "best"
+    return {
+        "post": post, "sort": sort, "comments": comment_threads(post, request.user, sort),
+        "can_reply": post.can_reply(request.user), "comment_form": form or CommentForm(post=post), **extra,
+    }
+
+
+def discussion_update(request, post, form=None, message=None, **extra):
+    """HTMX 局部刷新讨论区，并顺带更新帖子操作栏里的回复数。"""
+    post = accessible_post(request, post.pk)
+    response = render(request, "forum/partials/discussion.html", discussion(request, post, form, oob=True, **extra))
+    return trigger_client_event(response, "toast", {"message": message}) if message else response
+
+
+def post_actions(request, pk):
+    return render(request, "forum/partials/post_actions.html", {"post": accessible_post(request, pk), "next_url": request.POST.get("next", "")})
+
+
 def home(request):
-    tab = request.GET.get("tab", "discover")
-    posts = Post.objects.for_home(request.user).with_activity(request.user)
+    tab = request.GET.get("tab")
+    tab = tab if tab in ("following", "campus") else "discover"
+    if tab != "discover" and not request.user.is_authenticated:
+        return redirect_to_login(request.get_full_path())
+    posts = Post.objects.cards(request.user).preferred_by(request.user)
+    followed = None
     if tab == "following":
-        if not request.user.is_authenticated:
-            return redirect("accounts:login")
-        posts = posts.filter(topic__followers__user=request.user)
+        followed = Topic.objects.filter(followers__user=request.user)
+        posts = posts.filter(topic__in=followed)
     elif tab == "campus":
-        if not request.user.is_authenticated:
-            return redirect("accounts:login")
         authors = Education.objects.active().filter(school_id__in=request.user.school_ids).values("user_id")
         posts = posts.filter(author_id__in=authors)
-    sort = request.GET.get("sort", "hot")
+    sort = "new" if request.GET.get("sort") == "new" else "hot"
     posts = posts.order_by("-created_at") if sort == "new" else posts.order_by("-score", "-comment_count", "-created_at")
-    return render(request, "forum/home.html", {
-        "page_obj": Paginator(posts, 12).get_page(request.GET.get("page")), "tab": tab, "sort": sort,
-    })
+    return render(request, "forum/home.html", {"page_obj": page(request, posts), "tab": tab, "sort": sort, "followed_topics": followed})
 
 
 def search(request):
     query = request.GET.get("q", "").strip()[:200]
-    posts = Post.objects.readable_by(request.user).with_activity(request.user)
+    posts = Post.objects.cards(request.user)
     posts = posts.filter(Q(title__icontains=query) | Q(body__icontains=query) | Q(topic__name__icontains=query)) if query else posts.none()
-    return render(request, "forum/search.html", {"q": query, "page_obj": Paginator(posts, 12).get_page(request.GET.get("page"))})
+    return render(request, "forum/search.html", {"q": query, "page_obj": page(request, posts)})
 
 
 def topics(request):
@@ -85,34 +127,15 @@ def topics(request):
 
 def topic(request, slug):
     item = get_object_or_404(Topic, slug=slug)
-    posts = Post.objects.readable_by(request.user).with_activity(request.user).filter(topic=item)
+    posts = Post.objects.cards(request.user).filter(topic=item)
     followed = request.user.is_authenticated and TopicFollow.objects.filter(user=request.user, topic=item).exists()
-    return render(request, "forum/topic.html", {"topic": item, "followed": followed, "page_obj": Paginator(posts, 12).get_page(request.GET.get("page"))})
+    return render(request, "forum/topic.html", {"topic": item, "followed": followed, "page_obj": page(request, posts)})
 
 
 def detail(request, pk):
     post = accessible_post(request, pk)
-    comments = list(post.comments.select_related("author", "parent__author").prefetch_related(
-        Prefetch("author__educations", queryset=Education.objects.active().select_related("school__tier"), to_attr="_active_educations")
-    ).annotate(like_count=Count("votes", distinct=True)))
-    liked = set(CommentVote.objects.filter(user=request.user, comment__post=post).values_list("comment_id", flat=True)) if request.user.is_authenticated else set()
-    by_id = {comment.pk: comment for comment in comments}
-    roots = []
-    for comment in comments:
-        comment.child_comments = []
-        comment.viewer_liked = comment.pk in liked
-    for comment in comments:
-        if comment.parent_id in by_id:
-            by_id[comment.parent_id].child_comments.append(comment)
-        else:
-            roots.append(comment)
-    if request.GET.get("sort", "best") == "best":
-        roots.sort(key=lambda comment: (comment.pk != post.accepted_comment_id, -comment.like_count, comment.created_at))
-    return render(request, "forum/detail.html", {
-        "post": post, "comments": roots, "can_reply": post.can_reply(request.user),
-        "comment_form": CommentForm(post=post),
-        "related_posts": Post.objects.readable_by(request.user).with_activity(request.user).filter(topic=post.topic).exclude(pk=post.pk)[:3],
-    })
+    related = Post.objects.cards(request.user).filter(topic=post.topic).exclude(pk=post.pk)[:5]
+    return render(request, "forum/detail.html", discussion(request, post, related_posts=related))
 
 
 @verified_required
@@ -146,6 +169,8 @@ def comment(request, pk):
         raise PermissionDenied("作者未向你的学校开放回复权限。")
     form = CommentForm(request.POST, post=post)
     if not form.is_valid():
+        if request.htmx:
+            return discussion_update(request, post, form)
         messages.error(request, "回复未发布，请检查内容和回复对象。")
         return redirect(post)
     with transaction.atomic():
@@ -160,6 +185,8 @@ def comment(request, pk):
             Notification(recipient_id=user_id, actor=request.user, post=post, comment=reply)
             for user_id in recipients - {request.user.pk}
         ])
+    if request.htmx:
+        return discussion_update(request, post, message="回复已发布。", highlight=reply.pk)
     return redirect(post.get_absolute_url() + f"#comment-{reply.pk}")
 
 
@@ -177,9 +204,7 @@ def vote(request, pk):
             previous.delete()
         else:
             PostVote.objects.update_or_create(user=request.user, post=post, defaults={"value": value})
-    if request.htmx:
-        return render(request, "forum/partials/post_actions.html", {"post": accessible_post(request, pk)})
-    return return_to(request, post)
+    return post_actions(request, pk) if request.htmx else return_to(request, post)
 
 
 @verified_required
@@ -190,21 +215,22 @@ def save(request, pk):
         item, created = SavedPost.objects.get_or_create(user=request.user, post=post)
         if not created:
             item.delete()
-    if request.htmx:
-        return render(request, "forum/partials/post_actions.html", {"post": accessible_post(request, pk)})
-    return return_to(request, post)
+    return post_actions(request, pk) if request.htmx else return_to(request, post)
 
 
 @verified_required
 @require_POST
 def like_comment(request, pk):
     item = get_object_or_404(Comment, pk=pk, is_deleted=False)
-    accessible_post(request, item.post_id)
+    post = accessible_post(request, item.post_id)
     with transaction.atomic():
         liked, created = CommentVote.objects.get_or_create(user=request.user, comment=item)
         if not created:
             liked.delete()
-    return redirect(item.post.get_absolute_url() + f"#comment-{item.pk}")
+    if request.htmx:
+        item.viewer_liked, item.like_count = created, item.votes.count()
+        return render(request, "forum/partials/comment_like.html", {"comment": item})
+    return redirect(post.get_absolute_url() + f"#comment-{item.pk}")
 
 
 @verified_required
@@ -217,18 +243,20 @@ def accept_comment(request, pk):
         post.save(update_fields=["accepted_comment", "updated_at"])
         if post.accepted_comment_id and item.author_id != request.user.pk:
             Notification.objects.create(recipient=item.author, actor=request.user, post=post, comment=item, kind="accepted")
+    if request.htmx:
+        return discussion_update(request, post, highlight=item.pk)
     return redirect(post.get_absolute_url() + f"#comment-{item.pk}")
 
 
 @verified_required
 @require_POST
 def delete_comment(request, pk):
-    item = get_object_or_404(Comment, pk=pk, author=request.user)
+    item = get_object_or_404(Comment.objects.select_related("post"), pk=pk, author=request.user)
     with transaction.atomic():
         item.body, item.is_deleted = "", True
         item.save(update_fields=["body", "is_deleted"])
         Post.objects.filter(accepted_comment=item).update(accepted_comment=None)
-    return redirect(item.post)
+    return discussion_update(request, item.post, message="回复已删除。") if request.htmx else redirect(item.post)
 
 
 @verified_required
@@ -242,8 +270,8 @@ def delete_post(request, pk):
 
 @login_required
 def saved(request):
-    posts = Post.objects.readable_by(request.user).with_activity(request.user).filter(saved_by__user=request.user).order_by("-saved_by__created_at")
-    return render(request, "forum/saved.html", {"page_obj": Paginator(posts, 12).get_page(request.GET.get("page"))})
+    posts = Post.objects.cards(request.user).filter(saved_by__user=request.user).order_by("-saved_by__created_at")
+    return render(request, "forum/saved.html", {"page_obj": page(request, posts)})
 
 
 @verified_required
@@ -261,11 +289,13 @@ def follow(request, slug):
 
 @login_required
 def notifications(request):
-    items = request.user.notifications.filter(post__in=Post.objects.readable_by(request.user)).select_related("actor", "post", "comment")
+    items = request.user.notifications.filter(post__in=Post.objects.readable_by(request.user)).select_related("actor", "post", "comment").defer(
+        "post__body", "post__body_html", "comment__body", "comment__body_html"
+    )
     if request.method == "POST":
         items.filter(is_read=False).update(is_read=True)
         return redirect("forum:notifications")
-    return render(request, "forum/notifications.html", {"page_obj": Paginator(items, 20).get_page(request.GET.get("page"))})
+    return render(request, "forum/notifications.html", {"page_obj": page(request, items, 20)})
 
 
 @login_required

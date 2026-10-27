@@ -43,12 +43,15 @@ TEMPLATES = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
     "DIRS": [BASE_DIR / "templates"],
     "APP_DIRS": True,
-    "OPTIONS": {"context_processors": [
-        "django.template.context_processors.request",
-        "django.contrib.auth.context_processors.auth",
-        "django.contrib.messages.context_processors.messages",
-        "forum.context_processors.navigation",
-    ]},
+    "OPTIONS": {
+        "context_processors": [
+            "django.template.context_processors.request",
+            "django.contrib.auth.context_processors.auth",
+            "django.contrib.messages.context_processors.messages",
+            "forum.context_processors.navigation",
+        ],
+        "builtins": ["django.contrib.humanize.templatetags.humanize", "forum.templatetags.ui"],
+    },
 }]
 WSGI_APPLICATION = "campus.wsgi.application"
 DATA_DIR = BASE_DIR / "var"
@@ -56,7 +59,8 @@ DATA_DIR.mkdir(exist_ok=True)
 DATABASES = {"default": {
     "ENGINE": "django.db.backends.sqlite3",
     "NAME": DATA_DIR / "db.sqlite3",
-    "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
+    # WAL 让读请求不被写事务阻塞；备份时用 sqlite3 的 .backup 命令。
+    "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE", "init_command": "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;"},
 }}
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = ["accounts.backends.CommunityBackend"]

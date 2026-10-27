@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -55,5 +56,5 @@ def certification(request):
 
 def profile(request, username):
     person = get_object_or_404(User, username=username, is_active=True)
-    posts = Post.objects.readable_by(request.user).with_activity(request.user).filter(author=person)
-    return render(request, "accounts/profile.html", {"person": person, "posts": posts.order_by("-created_at")[:30]})
+    posts = Post.objects.cards(request.user).filter(author=person).order_by("-created_at")
+    return render(request, "accounts/profile.html", {"person": person, "page_obj": Paginator(posts, 12).get_page(request.GET.get("page"))})

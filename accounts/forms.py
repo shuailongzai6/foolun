@@ -17,12 +17,16 @@ class ReportUploadForm(forms.Form):
 
 
 class RegistrationForm(UserCreationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["password1"].help_text = "至少 8 位，避免常见密码或与用户名相似的密码。"
+
     class Meta:
         model = User
         fields = ("username", "display_name", "password1", "password2")
         widgets = {
             "username": forms.TextInput(attrs={"placeholder": "日常登录使用的用户名", "autocomplete": "username"}),
-            "display_name": forms.TextInput(attrs={"placeholder": "大家在社区里看到的名字"}),
+            "display_name": forms.TextInput(attrs={"placeholder": "可选，大家在社区里看到的名字"}),
         }
 
 

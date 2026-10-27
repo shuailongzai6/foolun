@@ -1,8 +1,26 @@
-<div class="post-actions" id="post-actions-{{ post.pk }}">
+<div class="actions" id="post-actions-{{ post.pk }}"{% if oob %} hx-swap-oob="true"{% endif %}>
   {% if user.is_authenticated and user.is_verified %}
-  <div class="vote-control"><form method="post" action="{% url 'forum:vote' post.pk %}" hx-post="{% url 'forum:vote' post.pk %}" hx-target="#post-actions-{{ post.pk }}" hx-swap="outerHTML" hx-disabled-elt="button">{% csrf_token %}<input type="hidden" name="value" value="1"><input type="hidden" name="next" value="{{ request.POST.next|default:request.get_full_path }}"><button class="vote-up {% if post.viewer_vote == 1 %}selected{% endif %}" aria-label="赞同{% if post.viewer_vote == 1 %}，再次点击撤回{% endif %}">{% include 'includes/icon.html' with name='chevron-up' %}<span>{{ post.score }}</span></button></form><form method="post" action="{% url 'forum:vote' post.pk %}" hx-post="{% url 'forum:vote' post.pk %}" hx-target="#post-actions-{{ post.pk }}" hx-swap="outerHTML" hx-disabled-elt="button">{% csrf_token %}<input type="hidden" name="value" value="-1"><input type="hidden" name="next" value="{{ request.POST.next|default:request.get_full_path }}"><button class="vote-down {% if post.viewer_vote == -1 %}selected{% endif %}" aria-label="不赞同{% if post.viewer_vote == -1 %}，再次点击撤回{% endif %}">{% include 'includes/icon.html' with name='chevron-down' %}</button></form></div>
-  {% else %}<a class="vote-control vote-login" href="{% if user.is_authenticated %}{% url 'accounts:certification' %}{% else %}{% url 'accounts:login' %}?next={{ post.get_absolute_url }}{% endif %}">{% include 'includes/icon.html' with name='chevron-up' %}<span>{{ post.score }}</span></a>{% endif %}
-  <a class="action-link" href="{{ post.get_absolute_url }}#discussion">{% include 'includes/icon.html' with name='message' %}<span>{{ post.comment_count }} 条讨论</span></a>
-  {% if user.is_authenticated and user.is_verified %}<form method="post" action="{% url 'forum:save' post.pk %}" hx-post="{% url 'forum:save' post.pk %}" hx-target="#post-actions-{{ post.pk }}" hx-swap="outerHTML" hx-disabled-elt="button">{% csrf_token %}<input type="hidden" name="next" value="{{ request.POST.next|default:request.get_full_path }}"><button class="action-link {% if post.viewer_saved %}selected{% endif %}">{% include 'includes/icon.html' with name='bookmark' %}<span>{% if post.viewer_saved %}已收藏{% else %}收藏{% endif %}</span></button></form>{% else %}<a class="action-link" href="{% if user.is_authenticated %}{% url 'accounts:certification' %}{% else %}{% url 'accounts:login' %}?next={{ post.get_absolute_url }}{% endif %}">{% include 'includes/icon.html' with name='bookmark' %}<span>收藏</span></a>{% endif %}
-  <button class="action-link share-action" type="button" data-share="{{ post.get_absolute_url }}">{% include 'includes/icon.html' with name='share' %}<span>分享</span></button>
+    <div class="vote">
+      <form method="post" action="{% url 'forum:vote' post.pk %}" hx-post="{% url 'forum:vote' post.pk %}" hx-target="#post-actions-{{ post.pk }}" hx-swap="outerHTML" hx-disabled-elt="find button">
+        {% csrf_token %}<input type="hidden" name="value" value="1"><input type="hidden" name="next" value="{{ next_url|default:request.get_full_path }}">
+        <button class="vote-up" aria-pressed="{% if post.viewer_vote == 1 %}true{% else %}false{% endif %}" aria-label="赞同，当前 {{ post.score }}">{% icon 'vote-up' %}赞同 {{ post.score }}</button>
+      </form>
+      <form method="post" action="{% url 'forum:vote' post.pk %}" hx-post="{% url 'forum:vote' post.pk %}" hx-target="#post-actions-{{ post.pk }}" hx-swap="outerHTML" hx-disabled-elt="find button">
+        {% csrf_token %}<input type="hidden" name="value" value="-1"><input type="hidden" name="next" value="{{ next_url|default:request.get_full_path }}">
+        <button class="vote-down" aria-pressed="{% if post.viewer_vote == -1 %}true{% else %}false{% endif %}" aria-label="不赞同">{% icon 'vote-down' %}</button>
+      </form>
+    </div>
+  {% else %}
+    <div class="vote"><a class="vote-up" href="{% if user.is_authenticated %}{% url 'accounts:certification' %}{% else %}{% url 'accounts:login' %}?next={{ post.get_absolute_url }}{% endif %}" title="登录并绑定学历后可以投票">{% icon 'vote-up' %}赞同 {{ post.score }}</a></div>
+  {% endif %}
+  <a class="action" href="{{ post.get_absolute_url }}#discussion">{% icon 'message' %}{% if post.comment_count %}{{ post.comment_count }} 条{% if post.kind == 'question' %}回答{% else %}讨论{% endif %}{% elif post.kind == 'question' %}写回答{% else %}参与讨论{% endif %}</a>
+  {% if user.is_authenticated and user.is_verified %}
+    <form method="post" action="{% url 'forum:save' post.pk %}" hx-post="{% url 'forum:save' post.pk %}" hx-target="#post-actions-{{ post.pk }}" hx-swap="outerHTML" hx-disabled-elt="find button">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ next_url|default:request.get_full_path }}">
+      <button class="action" aria-pressed="{% if post.viewer_saved %}true{% else %}false{% endif %}">{% icon 'bookmark' %}{% if post.viewer_saved %}已收藏{% else %}收藏{% endif %}</button>
+    </form>
+  {% else %}
+    <a class="action" href="{% if user.is_authenticated %}{% url 'accounts:certification' %}{% else %}{% url 'accounts:login' %}?next={{ post.get_absolute_url }}{% endif %}">{% icon 'bookmark' %}收藏</a>
+  {% endif %}
+  <button class="action action-push" type="button" data-share="{{ post.get_absolute_url }}" data-share-title="{{ post.title }}">{% icon 'share' %}分享</button>
 </div>

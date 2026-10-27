@@ -1,1 +1,8 @@
-<div class="empty-state"><span class="empty-icon">{% include 'includes/icon.html' with name=empty_icon|default:'message' %}</span><h3>{{ empty_title|default:'这里还很安静' }}</h3><p>{{ empty_description|default:'每段有意思的交流，都从第一个声音开始。' }}</p>{% if user.is_authenticated %}<a class="button button-primary" href="{% url 'forum:compose' %}">发起一个讨论{% include 'includes/icon.html' with name='plus' %}</a>{% else %}<a class="button button-primary" href="{% url 'accounts:register' %}">加入同窗</a>{% endif %}</div>
+<div class="empty">
+  <span class="empty-icon">{% icon empty_icon|default:'message' %}</span>
+  <h2>{{ empty_title|default:'这里还很安静' }}</h2>
+  <p>{{ empty_description|default:'每段有意思的交流，都从第一个声音开始。' }}</p>
+  {% if not no_action %}
+    {% if user.is_authenticated %}<a class="btn btn-primary" href="{% url 'forum:compose' %}">{% icon 'plus' %}发起讨论</a>{% else %}<a class="btn btn-primary" href="{% url 'accounts:register' %}">加入同窗</a>{% endif %}
+  {% endif %}
+</div>

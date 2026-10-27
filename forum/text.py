@@ -1,6 +1,11 @@
+import re
+from html import unescape
+
 import markdown
 import nh3
+from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
+from django.utils.text import Truncator
 
 
 def render_markdown(text):
@@ -12,3 +17,11 @@ def render_markdown(text):
         url_schemes={"http", "https", "mailto"},
         link_rel="nofollow noopener noreferrer",
     ))
+
+
+def summarize(html, length=160):
+    """纯文本摘要：解码实体并合并空白，输出时再由模板统一转义。"""
+    text = " ".join(unescape(strip_tags(html)).split())
+    # 段落合并后，全角标点两侧不需要空格。
+    text = re.sub(r" ?([　-〿＀-￯]) ?", r"\1", text)
+    return Truncator(text).chars(length)

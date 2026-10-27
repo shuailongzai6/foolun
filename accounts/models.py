@@ -80,8 +80,12 @@ class User(AbstractUser):
         return {education.school.tier_id for education in self.verified_educations if education.school.tier_id is not None}
 
     @property
+    def schools(self):
+        return list({education.school_id: education.school for education in self.verified_educations}.values())
+
+    @property
     def schools_label(self):
-        return "、".join(dict.fromkeys(education.school.label for education in self.verified_educations))
+        return "、".join(school.label for school in self.schools)
 
 
 class EducationQuerySet(models.QuerySet):

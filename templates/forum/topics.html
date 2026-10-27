@@ -1,3 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}话题广场 · 同窗{% endblock %}
-{% block content %}<div class="page-heading"><span class="eyebrow">找一个兴趣，遇见一群同路人</span><h1>话题广场<span class="heading-star">✳</span></h1><p>校园生活很大，从你关心的小事开始。</p></div><div class="topic-grid">{% for topic in topics %}<article class="topic-card"><a href="{{ topic.get_absolute_url }}" class="topic-card-heading"><span class="topic-icon color-{{ topic.color }}">{% include 'includes/icon.html' with name=topic.icon %}</span>{% include 'includes/icon.html' with name='arrow-up-right' %}</a><h2><a href="{{ topic.get_absolute_url }}">{{ topic.name }}</a></h2><p>{{ topic.description }}</p><div class="topic-card-bottom"><span>{{ topic.post_count }} 个可读讨论</span>{% if user.is_authenticated %}{% include 'forum/partials/follow.html' with followed=topic.viewer_followed %}{% else %}<a class="button button-secondary" href="{% url 'accounts:login' %}">关注话题</a>{% endif %}</div></article>{% endfor %}</div>{% endblock %}
+{% block content %}
+<section class="card page-intro">
+  <h1>话题广场</h1>
+  <p>校园生活很大，从你关心的小事开始。关注话题后，可在首页「关注」里看到它们。</p>
+</section>
+<div class="topic-grid">
+  {% for topic in topics %}
+    <article class="card topic-card">
+      <div class="topic-card-top">
+        <span class="topic-icon topic-{{ topic.color }}">{% icon topic.icon %}</span>
+        <h2><a href="{{ topic.get_absolute_url }}">{{ topic.name }}</a></h2>
+      </div>
+      <p>{{ topic.description }}</p>
+      <div class="topic-card-foot">
+        <span>{{ topic.post_count }} 个可读讨论</span>
+        {% if user.is_authenticated %}{% include 'forum/partials/follow.html' with followed=topic.viewer_followed %}{% else %}<a class="btn btn-sm btn-secondary" href="{% url 'accounts:login' %}?next={{ request.get_full_path }}">{% icon 'plus' %}关注</a>{% endif %}
+      </div>
+    </article>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,1 +1,10 @@
-{% extends 'base.html' %}{% block title %}讨论暂时无法访问 · 同窗{% endblock %}{% block content %}<div class="error-page"><span class="error-number">404</span><h1>这扇窗，暂时没有打开。</h1><p>内容可能已删除，或作者未向你开放阅读权限。</p><a class="button button-primary" href="{% url 'forum:home' %}">回到发现{% include 'includes/icon.html' with name='arrow-right' %}</a></div>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}页面无法访问 · 同窗{% endblock %}
+{% block content %}
+<section class="card error-page">
+  <span class="error-code">404</span>
+  <h1>这扇窗，暂时没有打开</h1>
+  <p>内容可能已删除，或作者未向你开放阅读权限。</p>
+  <a class="btn btn-primary" href="{% url 'forum:home' %}">回到首页{% icon 'arrow-right' %}</a>
+</section>
+{% endblock %}

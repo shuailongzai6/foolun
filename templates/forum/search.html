@@ -1,3 +1,22 @@
 {% extends 'base.html' %}
-{% block title %}搜索 {{ q }} · 同窗{% endblock %}
-{% block content %}<div class="page-heading"><span class="eyebrow">沿着好奇心，找一个答案</span><h1>搜索讨论</h1>{% if q %}<p>“{{ q }}” 找到 {{ page_obj.paginator.count }} 个可读讨论</p>{% else %}<p>在顶部搜索框输入你感兴趣的关键词。</p>{% endif %}</div><div class="post-feed">{% for post in page_obj %}{% include 'forum/partials/post_card.html' %}{% empty %}{% include 'includes/empty.html' with empty_icon='search' empty_title='还没有找到相关讨论' empty_description='试试换一个关键词，或把这个问题带到同窗。' %}{% endfor %}</div>{% include 'includes/pagination.html' %}{% endblock %}
+{% block title %}{% if q %}{{ q }} 的搜索结果{% else %}搜索{% endif %} · 同窗{% endblock %}
+{% block content %}
+<section class="card feed">
+  <div class="feed-head">
+    <h1>{% icon 'search' %}{% if q %}“{{ q }}”{% else %}搜索讨论{% endif %}</h1>
+    {% if q %}<span>{{ page_obj.paginator.count }} 个可读讨论</span>{% endif %}
+  </div>
+  <div class="feed-list" id="feed">
+    {% for post in page_obj %}
+      {% include 'forum/partials/post_item.html' %}
+    {% empty %}
+      {% if q %}
+        {% include 'includes/empty.html' with empty_icon='search' empty_title='没有找到相关讨论' empty_description='换一个关键词试试，或者把这个问题带到同窗。' %}
+      {% else %}
+        {% include 'includes/empty.html' with empty_icon='search' empty_title='想找点什么？' empty_description='在顶部搜索框输入关键词，会在你有权阅读的讨论里查找标题、正文和话题。' no_action=True %}
+      {% endif %}
+    {% endfor %}
+    {% include 'includes/load_more.html' %}
+  </div>
+</section>
+{% endblock %}

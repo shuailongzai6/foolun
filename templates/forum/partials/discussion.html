@@ -1,0 +1,32 @@
+<section class="card discussion" id="discussion">
+  <header class="discussion-head">
+    <h2>{% if post.kind == 'question' %}回答{% else %}讨论{% endif %}<span>{{ post.comment_count }}</span></h2>
+    <nav class="segmented" aria-label="排序方式">
+      <a href="?sort=best#discussion"{% if sort == 'best' %} aria-current="true"{% endif %}>赞同优先</a>
+      <a href="?sort=new#discussion"{% if sort == 'new' %} aria-current="true"{% endif %}>按时间</a>
+    </nav>
+  </header>
+  {% if can_reply %}
+    <div class="reply-slot">
+      <form class="reply-box" id="reply-form" method="post" action="{% url 'forum:comment' post.pk %}" hx-post="{% url 'forum:comment' post.pk %}" hx-target="#discussion" hx-swap="outerHTML" hx-disabled-elt="find button[type='submit']">
+        {% csrf_token %}<input type="hidden" name="sort" value="{{ sort }}">{{ comment_form.parent }}
+        <div class="reply-box-head">{% avatar user 'sm' %}<span data-reply-label>写下你的{% if post.kind == 'question' %}回答{% else %}想法{% endif %}</span><button type="button" data-cancel-reply hidden>取消回复</button></div>
+        <label class="sr-only" for="{{ comment_form.body.id_for_label }}">回复内容</label>
+        {{ comment_form.body }}
+        {{ comment_form.body.errors }}{{ comment_form.parent.errors }}
+        <div class="reply-box-foot"><span>支持 Markdown<span class="kbd-hint"> · <kbd data-mod>Ctrl</kbd> + <kbd>Enter</kbd> 发布</span></span><button class="btn btn-primary btn-sm" type="submit">发布</button></div>
+      </form>
+    </div>
+  {% elif not user.is_authenticated %}
+    <div class="join-cta"><p>你的经验，也许正好是别人需要的答案。</p><a class="btn btn-primary btn-sm" href="{% url 'accounts:login' %}?next={{ post.get_absolute_url }}">登录参与讨论</a></div>
+  {% elif not user.is_verified %}
+    <div class="join-cta"><p>绑定学历后，就可以参与讨论了。</p><a class="btn btn-secondary btn-sm" href="{% url 'accounts:certification' %}">去绑定</a></div>
+  {% else %}
+    <div class="join-cta"><p>{% icon 'lock' %}作者暂未向你的学校开放回复，你仍然可以阅读。</p></div>
+  {% endif %}
+  <div class="comment-list">
+    {% for comment in comments %}{% include 'forum/partials/comment.html' %}{% endfor %}
+    {% if not post.comment_count %}<p class="quiet">还没有{% if post.kind == 'question' %}回答{% else %}回复{% endif %}，好的交流从第一个声音开始。</p>{% endif %}
+  </div>
+</section>
+{% if oob %}{% include 'forum/partials/post_actions.html' with next_url=post.get_absolute_url %}{% endif %}

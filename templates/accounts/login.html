@@ -1,4 +1,26 @@
 {% extends 'base.html' %}
 {% block title %}登录 · 同窗{% endblock %}
-{% block body_class %}auth-page{% endblock %}
-{% block content %}<div class="page-heading"><span class="eyebrow">好久不见，欢迎回来</span><h1>接着，把话聊下去。</h1><p>校园里的新鲜声音，正在等你。</p></div><div class="paper-panel auth-card"><div class="auth-tabs"><strong>登录同窗</strong><span>还没加入？<a href="{% url 'accounts:register' %}">创建账户</a></span></div><form method="post">{% csrf_token %}{{ form.non_field_errors }}{% include 'includes/form_field.html' with field=form.username %}{% include 'includes/form_field.html' with field=form.password %}<input type="hidden" name="next" value="{{ next }}"><button class="button button-primary button-large full-width">登录{% include 'includes/icon.html' with name='arrow-right' %}</button><p class="form-terms">使用注册时设置的用户名和密码。</p></form></div>{% endblock %}
+{% block layout %}is-single{% endblock %}
+{% block aside_column %}{% endblock %}
+{% block content %}
+<div class="auth">
+  <section class="auth-intro">
+    <span class="brand">{% icon 'logo' %}<span>同窗</span></span>
+    <h1>好久不见，<br>接着把话聊下去。</h1>
+    <p>校园里的新鲜声音，正在等你。</p>
+  </section>
+  <section class="card auth-card">
+    <h2>登录同窗</h2>
+    <p class="sub">使用注册时设置的用户名和密码。</p>
+    <form method="post" data-submit-label="正在登录…">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      {% include 'includes/form_field.html' with field=form.username %}
+      {% include 'includes/form_field.html' with field=form.password %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn btn-primary btn-lg btn-block" type="submit">登录</button>
+    </form>
+    <p class="auth-switch">还没有账户？<a href="{% url 'accounts:register' %}">创建账户</a></p>
+  </section>
+</div>
+{% endblock %}

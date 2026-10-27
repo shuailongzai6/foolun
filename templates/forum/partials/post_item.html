@@ -1,0 +1,16 @@
+<article class="post-item">
+  <div class="post-meta">
+    <a class="author" href="{% url 'accounts:profile' post.author.username %}">{% avatar post.author 'sm' %}<span>{{ post.author.name }}</span></a>
+    {% if post.author.is_verified %}<span class="dot"></span><span class="school" title="{{ post.author.schools_label }}">{{ post.author.schools_label }}</span>{% endif %}
+    {% if post.author.is_demo %}<span class="chip">示例</span>{% endif %}
+    <span class="dot"></span><time datetime="{{ post.created_at|date:'c' }}">{{ post.created_at|naturaltime }}</time>
+    <span class="post-flags">
+      {% if not hide_topic %}<a class="chip topic-{{ post.topic.color }}" href="{{ post.topic.get_absolute_url }}">{{ post.topic.name }}</a>{% endif %}
+      {% if post.access_mode != 'all' %}<span class="chip" title="阅读范围">{% icon 'lock' %}{{ post.access_label }}</span>{% endif %}
+      {% if post.accepted_comment_id %}<span class="chip chip-success">{% icon 'check' %}已采纳</span>{% endif %}
+    </span>
+  </div>
+  <h2 class="post-title"><a href="{{ post.get_absolute_url }}">{% if post.kind == 'question' %}<span class="kind-badge">问</span>{% endif %}{{ post.title }}</a></h2>
+  {% if post.excerpt %}<p class="post-excerpt"><a href="{{ post.get_absolute_url }}" tabindex="-1" aria-hidden="true">{{ post.excerpt }}</a></p>{% endif %}
+  {% include 'forum/partials/post_actions.html' %}
+</article>

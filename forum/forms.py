@@ -6,20 +6,23 @@ from .models import AccessMode, Comment, Post
 
 
 class PostForm(forms.ModelForm):
-    body = forms.CharField(label="内容", max_length=20000, widget=forms.Textarea(attrs={"rows": 12, "placeholder": "说说你的问题、观察或想法。具体的背景，往往能带来更好的回答。", "data-editor": ""}))
+    body = forms.CharField(label="内容", max_length=20000, widget=forms.Textarea(attrs={"rows": 14, "placeholder": "说说你的问题、观察或想法。具体的背景，往往能带来更好的回答。", "data-editor": ""}))
 
     class Meta:
         model = Post
         fields = ("kind", "topic", "title", "body", "access_mode", "read_min_tier", "read_max_tier", "reply_min_tier", "reply_max_tier")
         labels = {"topic": "话题"}
         widgets = {
-            "title": forms.TextInput(attrs={"placeholder": "一个具体、清楚的标题", "autofocus": True}),
+            "kind": forms.RadioSelect,
+            "topic": forms.Select(attrs={"class": "topic-select"}),
+            "title": forms.TextInput(attrs={"placeholder": "一个具体、清楚的标题", "autofocus": True, "class": "title-input"}),
             "access_mode": forms.RadioSelect,
             **{field: forms.HiddenInput for field in ("read_min_tier", "read_max_tier", "reply_min_tier", "reply_max_tier")},
         }
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["topic"].empty_label = "选择一个话题"
         self.user = user
         self.tiers = list(SchoolTier.objects.all())
         self.own_ranks = sorted(user.school_tier_ranks)
@@ -42,7 +45,7 @@ class PostForm(forms.ModelForm):
 
 
 class CommentForm(forms.ModelForm):
-    body = forms.CharField(label="回复", max_length=10000, widget=forms.Textarea(attrs={"rows": 4, "placeholder": "分享你的经验，或接着这个问题一起想一想。"}))
+    body = forms.CharField(label="回复", max_length=10000, widget=forms.Textarea(attrs={"rows": 3, "placeholder": "分享你的经验，或接着这个问题一起想一想。"}))
 
     class Meta:
         model = Comment

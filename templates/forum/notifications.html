@@ -1,3 +1,32 @@
-{% extends 'base.html' %}{% load humanize %}
+{% extends 'base.html' %}
 {% block title %}通知 · 同窗{% endblock %}
-{% block content %}<div class="page-heading"><span class="eyebrow">你的声音，得到了回应</span><div class="heading-with-action"><h1>通知</h1><form method="post">{% csrf_token %}<button class="button button-secondary">全部标为已读</button></form></div><p>来自讨论里的回复与回答采纳。</p></div><div class="notifications-panel">{% for notice in page_obj %}<form method="post" action="{% url 'forum:open_notification' notice.pk %}" class="notification-row {% if not notice.is_read %}unread{% endif %}">{% csrf_token %}<button><span class="avatar avatar-{{ notice.actor.avatar_color }}">{{ notice.actor.initial }}</span><span class="notification-content"><span><strong>{{ notice.actor.name }}</strong> {{ notice.get_kind_display }}</span><strong class="notification-post">{{ notice.post.title }}</strong><small>{{ notice.created_at|naturaltime }}</small></span>{% if not notice.is_read %}<i class="unread-dot"></i>{% endif %}{% include 'includes/icon.html' with name='arrow-up-right' %}</button></form>{% empty %}{% include 'includes/empty.html' with empty_icon='bell' empty_title='暂时没有新消息' empty_description='当有人回复你的讨论或采纳你的回答，会在这里告诉你。' %}{% endfor %}</div>{% include 'includes/pagination.html' %}{% endblock %}
+{% block content %}
+<section class="card feed">
+  <div class="feed-head">
+    <h1>{% icon 'bell' %}通知</h1>
+    {% if unread_notifications %}<form method="post">{% csrf_token %}<button class="btn btn-sm btn-ghost">{% icon 'check' %}全部标为已读</button></form>{% endif %}
+  </div>
+  <div class="feed-list" id="feed">
+    {% for notice in page_obj %}
+      <div class="inbox-item{% if not notice.is_read %} is-unread{% endif %}">
+        <form method="post" action="{% url 'forum:open_notification' notice.pk %}">
+          {% csrf_token %}
+          <button>
+            {% avatar notice.actor %}
+            <span class="inbox-text">
+              <span><strong>{{ notice.actor.name }}</strong> {{ notice.get_kind_display }}</span>
+              <span class="inbox-post">{{ notice.post.title }}</span>
+              {% if notice.comment.excerpt %}<span class="inbox-quote">{{ notice.comment.excerpt }}</span>{% endif %}
+              <time datetime="{{ notice.created_at|date:'c' }}">{{ notice.created_at|naturaltime }}</time>
+            </span>
+            {% if not notice.is_read %}<span class="unread-dot" aria-label="未读"></span>{% endif %}
+          </button>
+        </form>
+      </div>
+    {% empty %}
+      {% include 'includes/empty.html' with empty_icon='bell' empty_title='暂时没有新消息' empty_description='有人回复你的讨论或采纳你的回答时，会在这里告诉你。' no_action=True %}
+    {% endfor %}
+    {% include 'includes/load_more.html' %}
+  </div>
+</section>
+{% endblock %}

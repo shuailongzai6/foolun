@@ -1,0 +1,37 @@
+{% if user.is_authenticated and user.is_verified %}
+  <section class="card aside-card">
+    <h2 class="aside-title">我的校园<a href="{% url 'forum:home' %}?tab=campus">同校讨论{% icon 'chevron-right' %}</a></h2>
+    <div class="school-chips">{% for school in user.schools %}<span class="chip">{% icon 'school' %}{{ school.label }}</span>{% endfor %}</div>
+    <p class="aside-text">{% if user.is_demo %}开发演示账户{% else %}已绑定 {{ user.verified_educations|length }} 份学历，任意一份符合即可参与{% endif %}</p>
+  </section>
+{% elif user.is_authenticated %}
+  <section class="card aside-card cta-card">
+    <h2>绑定学历，参与讨论</h2>
+    <p>你现在可以浏览公开讨论。绑定学信网学历后，就能发帖、回复，并看到同校与等级区间的讨论。</p>
+    <a class="btn btn-primary btn-block" href="{% url 'accounts:certification' %}">绑定学历{% icon 'arrow-right' %}</a>
+    <small>支持绑定多份学历</small>
+  </section>
+{% else %}
+  <section class="card aside-card cta-card">
+    <h2>和同窗聊聊校园里的事</h2>
+    <p>注册只需用户名和密码。绑定学信网学历后，按学校与学校等级参与交流。</p>
+    <a class="btn btn-primary btn-block" href="{% url 'accounts:register' %}">加入同窗{% icon 'arrow-right' %}</a>
+    <small>已有账户？<a href="{% url 'accounts:login' %}">登录</a></small>
+  </section>
+  <section class="card aside-card">
+    <h2 class="aside-title">谁能读，谁能回复</h2>
+    <ul class="mode-list">
+      <li>{% icon 'globe' %}<div><strong>所有人</strong><span>游客也能阅读，绑定学历后可回复</span></div></li>
+      <li>{% icon 'school' %}<div><strong>仅本校</strong><span>与作者同校的同学才能阅读和回复</span></div></li>
+      <li>{% icon 'layers' %}<div><strong>等级区间</strong><span>按学校等级分别设置阅读与回复范围</span></div></li>
+    </ul>
+  </section>
+{% endif %}
+<section class="card aside-card">
+  <h2 class="aside-title">校园话题<a href="{% url 'forum:topics' %}">全部{% icon 'chevron-right' %}</a></h2>
+  <nav class="topic-list" aria-label="校园话题">
+    {% for item in nav_topics %}
+      <a href="{{ item.get_absolute_url }}"><span class="topic-icon topic-{{ item.color }}">{% icon item.icon %}</span><span><strong>{{ item.name }}</strong><small>{{ item.description }}</small></span></a>
+    {% endfor %}
+  </nav>
+</section>

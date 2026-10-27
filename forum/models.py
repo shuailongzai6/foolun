@@ -4,12 +4,11 @@ from django.db.models import Count, Exists, F, IntegerField, OuterRef, Prefetch,
 from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.functional import cached_property
-from django.utils.html import strip_tags
+from django.utils.safestring import mark_safe
 
 from accounts.models import Education
 
-from .text import render_markdown
+from .text import render_markdown, summarize
 
 
 class AccessMode(models.TextChoices):
@@ -55,13 +54,11 @@ class PostQuerySet(models.QuerySet):
             | Q(access_mode=AccessMode.RANGE, _in_read_range=True)
         )
 
-    def for_home(self, user):
-        posts = self.readable_by(user)
-        if not user.is_authenticated:
-            return posts
-        if user.home_min_tier_id is None or user.home_max_tier_id is None:
-            return posts
-        return posts.filter(
+    def preferred_by(self, user):
+        """首页偏好：只保留阅读范围完整覆盖偏好区间的帖子。"""
+        if not user.is_authenticated or user.home_min_tier_id is None:
+            return self
+        return self.filter(
             Q(access_mode=AccessMode.ALL)
             | Q(access_mode=AccessMode.RANGE, read_min_tier_id__lte=user.home_min_tier_id, read_max_tier_id__gte=user.home_max_tier_id)
         )
@@ -82,8 +79,35 @@ class PostQuerySet(models.QuerySet):
             )
         return posts.annotate(viewer_vote=Value(0, output_field=IntegerField()), viewer_saved=Value(False))
 
+    def cards(self, user):
+        """列表卡片：可读帖子与互动统计，只读摘要，不读取正文。"""
+        return self.readable_by(user).with_activity(user).defer("body", "body_html")
 
-class Post(models.Model):
+
+class Rendered(models.Model):
+    """正文保存时渲染一次 Markdown；页面直接输出清理过的 HTML，列表只用纯文本摘要。"""
+
+    body_html = models.TextField(default="", editable=False)
+    excerpt = models.CharField(max_length=200, default="", editable=False)
+
+    class Meta:
+        abstract = True
+
+    def save(self, **kwargs):
+        fields = kwargs.get("update_fields")
+        if fields is None or "body" in fields:
+            self.body_html = render_markdown(self.body)
+            self.excerpt = summarize(self.body_html)
+            if fields is not None:
+                kwargs["update_fields"] = {*fields, "body_html", "excerpt"}
+        super().save(**kwargs)
+
+    @property
+    def html(self):
+        return mark_safe(self.body_html)
+
+
+class Post(Rendered):
     class Kind(models.TextChoices):
         QUESTION = "question", "提问"
         DISCUSSION = "discussion", "讨论"
@@ -123,18 +147,9 @@ class Post(models.Model):
     def get_absolute_url(self):
         return reverse("forum:detail", args=[self.pk])
 
-    @cached_property
-    def html(self):
-        return render_markdown(self.body)
-
-    @property
-    def excerpt(self):
-        return strip_tags(self.html)
-
     def can_reply(self, user):
+        """帖子须经 readable_by 取得；这里只判断回复范围。"""
         if not user.is_authenticated or not user.is_verified:
-            return False
-        if not Post.objects.readable_by(user).filter(pk=self.pk).exists():
             return False
         return self.access_mode != AccessMode.RANGE or any(
             self.reply_min_tier_id <= rank <= self.reply_max_tier_id for rank in user.school_tier_ranks
@@ -147,7 +162,7 @@ class Post(models.Model):
         return self.get_access_mode_display()
 
 
-class Comment(models.Model):
+class Comment(Rendered):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comments")
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies")
@@ -159,10 +174,6 @@ class Comment(models.Model):
         ordering = ["created_at"]
         verbose_name = "回复"
         verbose_name_plural = "回复"
-
-    @cached_property
-    def html(self):
-        return render_markdown(self.body)
 
 
 class PostVote(models.Model):

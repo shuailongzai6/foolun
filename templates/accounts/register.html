@@ -1,36 +1,33 @@
 {% extends 'base.html' %}
 {% block title %}加入同窗{% endblock %}
-{% block body_class %}auth-page{% endblock %}
+{% block layout %}is-single{% endblock %}
+{% block aside_column %}{% endblock %}
 {% block content %}
-<div class="page-heading">
-  <span class="eyebrow">在校生与校友，都欢迎</span>
-  <h1>一起，把校园聊得更有趣。</h1>
-  <p>先创建账户，找到感兴趣的讨论。</p>
-</div>
-<div class="paper-panel auth-card">
-  <div class="auth-tabs"><strong>创建账户</strong><span>已有账户？<a href="{% url 'accounts:login' %}">去登录{% include 'includes/icon.html' with name='arrow-right' %}</a></span></div>
-  <form method="post" data-submit-label="正在创建账户…">
-    {% csrf_token %}{{ form.non_field_errors }}
-    <div class="form-row">
+<div class="auth">
+  <section class="auth-intro">
+    <span class="brand">{% icon 'logo' %}<span>同窗</span></span>
+    <h1>在校生与校友，<br>都欢迎来聊聊。</h1>
+    <p>先创建账户，找到感兴趣的讨论。</p>
+    <ol class="steps">
+      <li><span>1</span><div><strong>创建账户</strong><p>使用用户名和密码注册，无需上传材料。</p></div></li>
+      <li><span>2</span><div><strong>浏览公开讨论</strong><p>未绑定学历时，与游客拥有相同的内容权限。</p></div></li>
+      <li><span>3</span><div><strong>绑定一份或多份学历</strong><p>通过学信网核验后，参与符合学校权限的交流。</p></div></li>
+    </ol>
+  </section>
+  <section class="card auth-card">
+    <h2>创建账户</h2>
+    <p class="sub">注册无需学历证明，绑定学历后即可参与讨论。</p>
+    <form method="post" data-submit-label="正在创建账户…">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
       {% include 'includes/form_field.html' with field=form.username %}
       {% include 'includes/form_field.html' with field=form.display_name %}
-    </div>
-    {% include 'includes/form_field.html' with field=form.password1 %}
-    <p class="field-help password-help">至少 8 位，避免使用常见密码或与用户名相似的密码。</p>
-    {% include 'includes/form_field.html' with field=form.password2 %}
-    <p class="privacy-note">{% include 'includes/icon.html' with name='lock' %}注册无需学历证明。绑定学历后即可参与讨论。</p>
-    <button class="button button-primary button-large full-width">创建同窗账户{% include 'includes/icon.html' with name='arrow-right' %}</button>
-    <p class="form-terms">加入即表示你已了解<a href="{% url 'forum:about' %}#guidelines">社区约定</a>与<a href="{% url 'forum:about' %}#privacy">隐私说明</a>。</p>
-  </form>
+      {% include 'includes/form_field.html' with field=form.password1 %}
+      {% include 'includes/form_field.html' with field=form.password2 %}
+      <button class="btn btn-primary btn-lg btn-block" type="submit">创建账户</button>
+      <p class="fine-print">加入即表示你已了解<a href="{% url 'forum:about' %}#guidelines">社区约定</a>与<a href="{% url 'forum:about' %}#privacy">隐私说明</a>。</p>
+    </form>
+    <p class="auth-switch">已有账户？<a href="{% url 'accounts:login' %}">登录</a></p>
+  </section>
 </div>
-{% endblock %}
-{% block right_sidebar %}
-<section class="sidebar-card registration-guide">
-  <span class="mini-label">从好奇开始</span><h3>先认识同窗，<br>再带来你的校园经历。</h3>
-  <ol class="step-list">
-    <li><span>01</span><div><strong>创建账户</strong><p>使用用户名和密码注册，无需上传材料。</p></div></li>
-    <li><span>02</span><div><strong>浏览公开讨论</strong><p>未绑定学历时，与游客拥有相同内容权限。</p></div></li>
-    <li><span>03</span><div><strong>绑定一份或多份学历</strong><p>通过学信网核验后，参与符合学校权限的交流。</p></div></li>
-  </ol>
-</section>
 {% endblock %}

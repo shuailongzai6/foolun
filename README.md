@@ -94,18 +94,29 @@ python3 scripts/setup.py
 
 包含 Markdown 发帖/预览/编辑/删除、楼中楼回复、采纳、赞同/不赞同、收藏、话题关注、搜索、通知、个人主页与管理后台。Markdown 经 nh3 清理，修改使用 POST 与 CSRF，所有内容入口复用同一阅读权限查询。
 
+帖子和回复在保存时渲染一次 Markdown，缓存清理后的 HTML 与纯文本摘要；列表只读取摘要，不读取正文。修改 `forum/text.py` 的渲染规则后，执行 `manage.py render_markdown` 重新生成。
+
+## 界面
+
+- 顶部导航加居中双栏：信息流在左，侧栏放校园、话题与站点信息；窄屏收起侧栏，手机端使用底部标签栏。
+- 颜色、字号、圆角集中在 `static/app.css` 顶部的设计令牌里。正文字号不小于 12px，文字对比度满足 WCAG AA。
+- 深色模式默认跟随系统，也可在页头切换并记在本机；`<head>` 中的内联脚本在首屏绘制前确定主题，避免闪烁。
+- 赞同、收藏、关注、回复、评论点赞、采纳、删除回复和“加载更多”都用 HTMX 局部刷新；没有 JavaScript 时，同样的表单和链接会整页提交。
+- 回复按一级回复展示，楼中楼平铺在所属回复下并标注回复对象。编辑器支持常用格式按钮，`Ctrl/⌘ + Enter` 发布，`Ctrl/⌘ + K` 搜索。
+- 图标集中在 `static/icons.svg`，模板用 `{% icon 'name' %}` 引用，头像用 `{% avatar user %}`，两个标签已注册为模板内置标签。
+
 ```text
 accounts/          账户、学校等级、多学历、去重与认证
 accounts/data/     初始学校目录与来源
 forum/             帖子、权限查询、讨论、通知
 campus/            Django 配置、路由、WSGI
 templates/         页面与 HTMX 局部片段
-static/            CSS、原生 JS、SVG 图标
+static/            设计令牌与深浅色样式、原生 JS、SVG 图标集
 verify_report.py   独立报告提取与官网比对
 scripts/setup.py   环境初始化
 ```
 
-业务数据库为 `var/db.sqlite3`。创建管理员后访问 `/admin/`，维护学校及等级：
+业务数据库为 `var/db.sqlite3`，启用 WAL 以免读请求被写入阻塞；备份时使用 `sqlite3 var/db.sqlite3 ".backup 'backup.sqlite3'"`，不要只复制主文件。创建管理员后访问 `/admin/`，维护学校及等级：
 
 ```bash
 .venv/bin/python manage.py createsuperuser
@@ -121,4 +132,4 @@ scripts/setup.py   环境初始化
 .venv/bin/gunicorn campus.wsgi:application --bind '[::]:8017' --workers 2 --timeout 60
 ```
 
-WhiteNoise 提供静态资源；请求体上限应允许 5 MB PDF 加表单字段。配置检查使用 `manage.py check`。现有安全用例集中于 `forum/tests.py`，没有为此次修改新增测试文件。
+WhiteNoise 提供带哈希文件名的压缩静态资源；请求体上限应允许 5 MB PDF 加表单字段。配置检查使用 `manage.py check`。测试集中于 `forum/tests.py`，覆盖内容安全、演示账户限制、Markdown 缓存与 HTMX 讨论区刷新。

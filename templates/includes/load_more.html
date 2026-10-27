@@ -1,0 +1,7 @@
+{% if page_obj.has_next %}
+  <div class="load-more">
+    <a class="btn btn-outline" href="{% querystring page=page_obj.next_page_number %}" hx-get="{% querystring page=page_obj.next_page_number %}" hx-select="#feed > *" hx-target="closest .load-more" hx-swap="outerHTML">加载更多</a>
+  </div>
+{% elif page_obj.number > 1 %}
+  <p class="feed-end">已经到底了</p>
+{% endif %}

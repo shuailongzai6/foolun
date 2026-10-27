@@ -1,3 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}我的收藏 · 同窗{% endblock %}
-{% block content %}<div class="page-heading"><span class="eyebrow">把值得回看的想法留在这里</span><h1>我的收藏</h1><p>只有你能看到自己的收藏列表。</p></div><div class="post-feed">{% for post in page_obj %}{% include 'forum/partials/post_card.html' %}{% empty %}{% include 'includes/empty.html' with empty_icon='bookmark' empty_title='把有共鸣的讨论收藏起来' empty_description='在帖子下方点击收藏，之后就能在这里找到它。' %}{% endfor %}</div>{% include 'includes/pagination.html' %}{% endblock %}
+{% block content %}
+<section class="card feed">
+  <div class="feed-head"><h1>{% icon 'bookmark' %}我的收藏</h1><span>仅自己可见</span></div>
+  <div class="feed-list" id="feed">
+    {% for post in page_obj %}
+      {% include 'forum/partials/post_item.html' %}
+    {% empty %}
+      {% include 'includes/empty.html' with empty_icon='bookmark' empty_title='把有共鸣的讨论收藏起来' empty_description='在帖子下方点击「收藏」，之后就能在这里找到它。' no_action=True %}
+    {% endfor %}
+    {% include 'includes/load_more.html' %}
+  </div>
+</section>
+{% endblock %}

@@ -1,9 +1,42 @@
-{% load humanize %}
-<article class="comment {% if post.accepted_comment_id == comment.pk %}accepted-comment{% endif %}" id="comment-{{ comment.pk }}">
-{% if comment.is_deleted %}<p class="deleted-comment">这条回复已被作者删除。</p>{% else %}
-<div class="comment-meta"><a class="avatar avatar-small avatar-{{ comment.author.avatar_color }}" href="{% url 'accounts:profile' comment.author.username %}">{{ comment.author.initial }}</a><a href="{% url 'accounts:profile' comment.author.username %}"><strong>{{ comment.author.name }}</strong></a><span class="comment-school">{{ comment.author.schools_label }}</span>{% if post.accepted_comment_id == comment.pk %}<span class="solved-tag">{% include 'includes/icon.html' with name='check-circle' %}作者采纳</span>{% endif %}<time>{{ comment.created_at|naturaltime }}</time></div>
-<div class="prose comment-body">{{ comment.html }}</div>
-<div class="comment-actions">{% if user.is_authenticated and user.is_verified %}<form method="post" action="{% url 'forum:like_comment' comment.pk %}">{% csrf_token %}<button class="action-link {% if comment.viewer_liked %}selected{% endif %}">{% include 'includes/icon.html' with name='chevron-up' %}赞同{% if comment.like_count %} {{ comment.like_count }}{% endif %}</button></form>{% else %}<span class="action-link">{% include 'includes/icon.html' with name='chevron-up' %}{{ comment.like_count }} 赞同</span>{% endif %}{% if can_reply %}<button class="action-link" type="button" data-reply="{{ comment.pk }}" data-reply-name="{{ comment.author.name }}">{% include 'includes/icon.html' with name='message' %}回复</button>{% endif %}{% if user.pk == post.author_id and post.kind == 'question' and not comment.parent_id %}<form method="post" action="{% url 'forum:accept_comment' comment.pk %}">{% csrf_token %}<button class="action-link">{% include 'includes/icon.html' with name='check' %}{% if post.accepted_comment_id == comment.pk %}取消采纳{% else %}采纳回答{% endif %}</button></form>{% endif %}{% if user.pk == comment.author_id %}<form method="post" action="{% url 'forum:delete_comment' comment.pk %}" data-confirm="确定删除这条回复吗？">{% csrf_token %}<button class="action-link muted">删除</button></form>{% endif %}</div>
-{% endif %}
-{% if comment.child_comments %}<div class="comment-children">{% for child in comment.child_comments %}{% include 'forum/partials/comment.html' with comment=child %}{% endfor %}</div>{% endif %}
+{% if not comment.is_deleted or comment.has_replies %}
+<article class="comment{% if post.accepted_comment_id == comment.pk %} is-accepted{% endif %}{% if highlight == comment.pk %} is-new{% endif %}" id="comment-{{ comment.pk }}">
+  {% if comment.is_deleted %}
+    <p class="comment-deleted">这条回复已删除</p>
+  {% else %}
+    <div class="comment-meta">
+      <a class="author" href="{% url 'accounts:profile' comment.author.username %}">{% avatar comment.author 'sm' %}<span>{{ comment.author.name }}</span></a>
+      {% if comment.author_id == post.author_id %}<span class="chip">作者</span>{% endif %}
+      {% if comment.author.is_verified %}<span class="dot"></span><span class="school" title="{{ comment.author.schools_label }}">{{ comment.author.schools_label }}</span>{% endif %}
+      {% if root and comment.parent_id != root.pk %}<span class="reply-to">回复 <b>{{ comment.parent.author.name }}</b></span>{% endif %}
+      {% if post.accepted_comment_id == comment.pk %}<span class="chip chip-success">{% icon 'check' %}作者采纳</span>{% endif %}
+    </div>
+    <div class="prose comment-body">{{ comment.html }}</div>
+    <div class="comment-actions">
+      <time datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|naturaltime }}</time>
+      {% if user.is_authenticated and user.is_verified %}
+        {% include 'forum/partials/comment_like.html' %}
+      {% else %}
+        <span class="action">{% icon 'thumb-up' %}{% if comment.like_count %}{{ comment.like_count }}{% else %}赞同{% endif %}</span>
+      {% endif %}
+      {% if can_reply %}<button class="action" type="button" data-reply="{{ comment.pk }}" data-reply-name="{{ comment.author.name }}">{% icon 'message' %}回复</button>{% endif %}
+      {% if user.pk == post.author_id and post.kind == 'question' and not comment.parent_id %}
+        <form method="post" action="{% url 'forum:accept_comment' comment.pk %}" hx-post="{% url 'forum:accept_comment' comment.pk %}" hx-target="#discussion" hx-swap="outerHTML" hx-disabled-elt="find button">
+          {% csrf_token %}<input type="hidden" name="sort" value="{{ sort }}">
+          <button class="action">{% icon 'check-circle' %}{% if post.accepted_comment_id == comment.pk %}取消采纳{% else %}采纳{% endif %}</button>
+        </form>
+      {% endif %}
+      {% if user.pk == comment.author_id %}
+        <form method="post" action="{% url 'forum:delete_comment' comment.pk %}" hx-post="{% url 'forum:delete_comment' comment.pk %}" hx-target="#discussion" hx-swap="outerHTML" hx-confirm="确定删除这条回复吗？" hx-disabled-elt="find button">
+          {% csrf_token %}<input type="hidden" name="sort" value="{{ sort }}">
+          <button class="action is-danger">{% icon 'trash' %}删除</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if comment.thread %}
+    <div class="comment-thread">
+      {% for reply in comment.thread %}{% include 'forum/partials/comment.html' with comment=reply root=comment %}{% endfor %}
+    </div>
+  {% endif %}
 </article>
+{% endif %}

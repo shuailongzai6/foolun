@@ -1,1 +1,6 @@
-<div class="form-field {% if field.errors %}has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="required-mark">*</span>{% endif %}</label>{{ field }}{% if field.errors %}<div class="field-errors">{{ field.errors }}</div>{% endif %}{% if show_help and field.help_text %}<div class="field-help">{{ field.help_text|safe }}</div>{% endif %}</div>
+<div class="field">
+  <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %}<span class="optional">（选填）</span>{% endif %}</label>
+  {{ field }}
+  {% if field.help_text %}<p class="field-help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</p>{% endif %}
+  {{ field.errors }}
+</div>

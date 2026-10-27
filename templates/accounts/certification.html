@@ -1,14 +1,24 @@
 {% extends 'base.html' %}
 {% block title %}绑定学历 · 同窗{% endblock %}
+{% block layout %}is-narrow{% endblock %}
+{% block aside_column %}{% endblock %}
 {% block content %}
-<a class="back-link" href="{% url 'accounts:settings' %}">{% include 'includes/icon.html' with name='chevron-left' %}账户设置</a>
-<div class="page-heading"><span class="eyebrow">每段校园经历，都有位置</span><h1>绑定一份学历</h1><p>可绑定多份学历，不会替换已绑定的其他学历。</p></div>
-<form class="paper-panel auth-card" method="post" enctype="multipart/form-data" data-submit-label="正在向学信网核验，请稍候…">
-  {% csrf_token %}{{ form.non_field_errors }}
-  <p class="field-help">在校生上传《教育部学籍在线验证报告》，校友上传《教育部学历证书电子注册备案表》。每份学历只能绑定一个账号；多份证明不要求同名。</p>
-  <label class="upload-zone" for="id_report">{% include 'includes/icon.html' with name='upload' %}<strong data-file-label>选择学信网报告</strong><span>原版文字 PDF · 最大 5 MB · 核验后删除原件</span>{{ form.report }}</label>
-  {{ form.report.errors }}
-  <p class="field-help">重新下载或续期的报告仍会按同一学历识别。若已在其他账号绑定，请联系管理员处理。</p>
-  <button class="button button-primary button-large full-width">核验并绑定学历{% include 'includes/icon.html' with name='check-circle' %}</button>
-</form>
+<a class="back-link" href="{% url 'accounts:settings' %}">{% icon 'chevron-left' %}账户设置</a>
+<section class="card card-pad">
+  <div class="section-head"><span class="topic-icon topic-yellow">{% icon 'school' %}</span><div><h2>绑定一份学历</h2><p>可绑定多份学历，不会替换已绑定的其他学历。</p></div></div>
+  <form method="post" enctype="multipart/form-data" data-submit-label="正在向学信网核验，请稍候…" class="stack">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <p class="field-help">在校生上传《教育部学籍在线验证报告》，校友上传《教育部学历证书电子注册备案表》。每份学历只能绑定一个账号；多份证明不要求同名。</p>
+    <label class="upload" for="{{ form.report.id_for_label }}" data-dropzone>
+      {% icon 'upload' %}
+      <strong data-file-label>选择或拖入学信网报告</strong>
+      <span>原版文字 PDF · 最大 5 MB · 核验后立即删除原件</span>
+      {{ form.report }}
+    </label>
+    {{ form.report.errors }}
+    <p class="field-help">重新下载或续期的报告仍会按同一学历识别。若已在其他账号绑定，请联系管理员处理。</p>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">{% icon 'shield' %}核验并绑定学历</button>
+  </form>
+</section>
 {% endblock %}

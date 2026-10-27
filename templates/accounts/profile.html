@@ -1,6 +1,37 @@
 {% extends 'base.html' %}
 {% block title %}{{ person.name }} · 同窗{% endblock %}
+{% block description %}{{ person.name }}{% if person.schools_label %} · {{ person.schools_label }}{% endif %}：{{ person.bio|default:'在同窗分享校园里的发现。' }}{% endblock %}
 {% block content %}
-<section class="profile-banner"><div class="profile-cover"><span>✳</span></div><div class="profile-details"><span class="avatar avatar-xl avatar-{{ person.avatar_color }}">{{ person.initial }}</span>{% if person.pk == user.pk %}<a class="button button-secondary" href="{% url 'accounts:settings' %}">编辑资料</a>{% endif %}<h1>{{ person.name }}</h1><p class="profile-school">{% include 'includes/icon.html' with name='school' %}{{ person.schools_label|default:'尚未绑定学历' }}</p><p class="profile-bio">{{ person.bio|default:'保持好奇，分享生活里的发现。' }}</p><span class="profile-joined">{{ person.date_joined|date:'Y 年 n 月' }} 加入同窗</span></div></section>
-<div class="list-heading"><h2>{% if person.pk == user.pk %}我的讨论{% else %}TA 的讨论{% endif %}</h2><span>按当前阅读权限展示</span></div><div class="post-feed">{% for post in posts %}{% include 'forum/partials/post_card.html' %}{% empty %}{% include 'includes/empty.html' with empty_title='还没有可以浏览的讨论' %}{% endfor %}</div>
+<section class="card profile">
+  <div class="profile-cover"></div>
+  <div class="profile-body">
+    {% avatar person 'xl' %}
+    <div>
+      <h1>{{ person.name }}</h1>
+      <div class="school-chips">{% for school in person.schools %}<span class="chip">{% icon 'school' %}{{ school.label }}</span>{% empty %}<span class="muted">尚未绑定学历</span>{% endfor %}</div>
+    </div>
+    {% if person.pk == user.pk %}<a class="btn btn-outline btn-sm" href="{% url 'accounts:settings' %}">{% icon 'pen' %}编辑资料</a>{% endif %}
+  </div>
+  <p class="profile-bio">{{ person.bio|default:'保持好奇，分享生活里的发现。' }}</p>
+  <div class="profile-facts"><span>{% icon 'calendar' %}{{ person.date_joined|date:'Y 年 n 月' }} 加入同窗</span><span>@{{ person.username }}</span></div>
+  {% if person.pk == user.pk %}
+    <nav class="profile-links" aria-label="我的">
+      <a class="btn btn-sm btn-secondary" href="{% url 'forum:saved' %}">{% icon 'bookmark' %}我的收藏</a>
+      <a class="btn btn-sm btn-ghost" href="{% url 'accounts:settings' %}">{% icon 'sliders' %}账户设置</a>
+      {% if not person.is_verified %}<a class="btn btn-sm btn-ghost" href="{% url 'accounts:certification' %}">{% icon 'school' %}绑定学历</a>{% endif %}
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="btn btn-sm btn-ghost" type="submit">{% icon 'logout' %}退出登录</button></form>
+    </nav>
+  {% endif %}
+</section>
+<section class="card feed">
+  <div class="feed-head"><h1>{% if person.pk == user.pk %}我的讨论{% else %}TA 的讨论{% endif %}</h1><span>按你的阅读权限展示</span></div>
+  <div class="feed-list" id="feed">
+    {% for post in page_obj %}
+      {% include 'forum/partials/post_item.html' %}
+    {% empty %}
+      {% include 'includes/empty.html' with empty_title='还没有可以浏览的讨论' empty_description='作者的讨论可能设置了阅读范围，或者还没有发布。' no_action=True %}
+    {% endfor %}
+    {% include 'includes/load_more.html' %}
+  </div>
+</section>
 {% endblock %}
